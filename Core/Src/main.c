@@ -542,13 +542,13 @@ uint16_t FUN_ESTADO_ABIERTO (void)
    SENAL_STATE=0;//Evita que cambie de estado
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
    HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
-/*
+
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
    SERVOS(1,0);
    HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
    HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
-*/
+
 for(;;){
     //retorno a semicerrado
      if(SENAL_STATE==1)
@@ -560,7 +560,7 @@ for(;;){
      {
       return ESTADO_CERRADO;
      }
-     //HAL_Delay(1);
+     HAL_Delay(1);
   }
 }
 
@@ -573,13 +573,13 @@ uint16_t FUN_ESTADO_SEMICERRADO (void)
    SENAL_STATE=0;//Evita que cambie de estado
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
    HAL_GPIO_WritePin(GPIOA,RED_LED,HIGH);
-/*
+
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
    SERVOS(0,0);
    HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
    HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
-*/
+
 for(;;){
 //cierre
     //retorno a ABIERTO
@@ -592,7 +592,7 @@ for(;;){
      {
       return ESTADO_CERRADO;
      }
-     //HAL_Delay(1);
+     HAL_Delay(1);
    }
 }
 
@@ -605,12 +605,13 @@ uint16_t FUN_ESTADO_CERRADO (void)
    SENAL_STATE=0;//Evita que cambie de estado
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,HIGH);
    HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
-/*
+
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
    SERVOS(0,1);
    HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
-   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);*/
+   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
+
 for(;;){
 
     //retorno a ABIERTO
@@ -623,7 +624,7 @@ for(;;){
      {
       return ESTADO_SEMICERRADO;
      }
-     //HAL_Delay(1);
+     HAL_Delay(1);
   }
 }
 
