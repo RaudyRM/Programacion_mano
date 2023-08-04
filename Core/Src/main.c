@@ -459,7 +459,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	    				Cont_Button_active = 0;
 	    	    		Cont_Button_unactive++;
 
-	    	    		if(Cont_Button_unactive>80)
+	    	    		if(Cont_Button_unactive>60)
 	    				{
 	    	    /* CUANDO EL FLANCO BAJO ES MAYOR A 80 o 0.8s,
 	    	     * el valor de CAMBIO aumenta*/
@@ -474,7 +474,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 	    	}
 
-	  	//Contador de pulsos
+//----------------------------Contador de pulsos-----------------------------------------//
 	  		  if(CAMBIO==1)
 	  		  {
 	  			//ES UN TIEMPO DE ESPERA PARA EL SIGUIENTE PULSO
@@ -509,27 +509,30 @@ uint8_t FUN_ESTADO_INICIO (void)
 
    for(;;)
    {
-      /*Prueba de leds
-        digitalWrite(LED, LOW);
-        digitalWrite(LED1, LOW);
-        delay(500);
-        digitalWrite(LED, HIGH);
-        digitalWrite(LED1, HIGH);
-        delay(500);
-        digitalWrite(LED, HIGH);
-        digitalWrite(LED1, LOW);
-        delay(500);
-        digitalWrite(LED, LOW);
-        digitalWrite(LED1, HIGH);
-        delay(500);
+      //Prueba de leds
+	    HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
+	    HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
+        HAL_Delay(500);
+        HAL_GPIO_WritePin(GPIOA,BLUE_LED,HIGH);
+        HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
+        HAL_Delay(500);
+        HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
+        HAL_GPIO_WritePin(GPIOA,RED_LED,HIGH);
+        HAL_Delay(500);
+        HAL_GPIO_WritePin(GPIOA,BLUE_LED,HIGH);
+        HAL_GPIO_WritePin(GPIOA,RED_LED,HIGH);
+        HAL_Delay(500);
+
+     //Prueba de servos
 	   // ESTADO ABIERTO
-	   			  SERVOS(1,0);
-	   	  // ESTADO SEMI_CERRADO
-	   			  SERVOS(0,0);
-	   	  // ESTADO CERRADO
-	   			  SERVOS(0,1);
-	   	  // APUNTAR
-	   			  SERVOS(1,1);*/
+			  SERVOS(1,0);
+	   // ESTADO SEMI_CERRADO
+			  SERVOS(0,0);
+	   // ESTADO CERRADO
+			  SERVOS(0,1);
+	   // APUNTAR
+			  SERVOS(1,1);
+
     if(INICIO_STATE==TRUE)
     {
       return ESTADO_ABIERTO;
@@ -551,14 +554,7 @@ uint8_t FUN_ESTADO_ABIERTO (void)
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
    HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
 
-   //ACTIVAR EL PWM
-   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
-   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
    SERVOS(1,0);
-
-   //DESACTIVA EL PWM
-   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
-   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
 
 for(;;){
     //retorno a semicerrado
@@ -586,14 +582,7 @@ uint8_t FUN_ESTADO_SEMICERRADO (void)
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
    HAL_GPIO_WritePin(GPIOA,RED_LED,HIGH);
 
-   //ACTIVAR EL PWM
-   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
-   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
    SERVOS(0,0);
-
-   //DESACTIVA EL PWM
-   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
-   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
 
 for(;;){
 //cierre
@@ -622,14 +611,7 @@ uint8_t FUN_ESTADO_CERRADO (void)
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,HIGH);
    HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
 
-   //ACTIVAR EL PWM
-   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
-   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
    SERVOS(0,1);
-
-   //DESACTIVA EL PWM
-   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
-   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
 
 for(;;){
 
@@ -664,6 +646,9 @@ for(;;){
  * */
 void SERVOS(uint8_t servo1, uint8_t servo2)
 {
+	//ACTIVAR EL PWM
+	HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
 
 	//Servo1
 		if(servo1==1)
@@ -692,6 +677,10 @@ void SERVOS(uint8_t servo1, uint8_t servo2)
 			htim15.Instance->CCR2 = 500;// 0 GRADOS
 			HAL_Delay(1000);
 		}
+
+	   //DESACTIVA EL PWM
+	   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
+	   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
 }
 
 
