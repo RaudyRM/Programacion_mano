@@ -435,8 +435,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  {
 	  static unsigned int Cont_Button_active = 0;	//Hace el conteo para el filtro en el flanco alto
 	  static unsigned int Cont_Button_unactive = 0; //Hace el conteo para el filtro en el flanco bajo
-	  static uint16_t Pulso=0;	//Lo que hace es avisar que tuvo un pulso alto para pasar al siguiente pulso
-	  static uint16_t CAMBIO=0;	//ES USADO PARA DAR UN TIEMPO DE ESPERA ENTRE CADA PULSO
+	  static uint8_t Pulso=0;	//Lo que hace es avisar que tuvo un pulso alto para pasar al siguiente pulso
+	  static uint8_t CAMBIO=0;	//ES USADO PARA SUMAR
+	  static uint8_t WAIT=0;	//ES USADO PARA ESPERAR EL SEGUNDO PULSO
 
 	  	if (HAL_GPIO_ReadPin(GPIOA,BUTTON_IN)==0)
 	    {
@@ -448,47 +449,57 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	    	Cont_Button_active++;
 	    	if(Cont_Button_active >= HUMBRAL_TIME)
 	    	{
-				if((Cont_Button_unactive>=10)&&(Cont_Button_unactive<=100))
-				{
-		/* Cuando se precione por segunda vez el push button y que tenga un tiempo
-		 * en el esto bajo mayor a 20 y menor a 100, entonces entrara aqui
-		 * y devolvienod
-		 * */
-					CAMBIO=2;
-					Pulso=HIGH;
-					Cont_Button_active = 0;
-					Cont_Button_unactive=0;
-				}else
-				{
-		/* Cuando se precione por primera vez el push button, entrara aqui
-		 * Para dar a entender que se ha precionado y darle tiempo a la segunda pulsacion
-		 * se le asigna a la variable Pulso un HIGH.
-		 *
-		 * Reseteamos los contadores de alto y bajo.*/
-					//SENAL_STATE=0;
-					CAMBIO=1;
+	    		//DETECTA EL FLANCO ALTO
 					Pulso=HIGH;
 					Cont_Button_active = 0;
 					Cont_Button_unactive=0;
 				}
+	    	}else if(Pulso==HIGH)
+	    	{
+	    	    /* Cuando dejo de pulsar el push button, entro aqui
+	    	     * Se resetea el contador en alto y comienza a contar el contador en bajo
+	    	     * y se vuelve en un FLANCO BAJO*/
+	    	    		Cont_Button_active = 0;
+	    	    		Cont_Button_unactive++;
+
+	    	    		if(Cont_Button_unactive>80)
+	    				{
+	    	    /* CUANDO EL FLANCO BAJO ES MAYOR A 80 o 0.8s,
+	    	     * el valor de CAMBIO aumenta*/
+	    	    			CAMBIO++;
+	    					Pulso=LOW;
+	    					Cont_Button_unactive=0;
+	    				}
+
 	    	}
 
-	    }else if(Pulso==HIGH){
-	    /* Cuando dejo de pulsar el push button, entro aqui
-	     * Se resetea el contador en alto y comienza a contar el contador en bajo*/
-	    		Cont_Button_active = 0;
-	    		Cont_Button_unactive++;
+	  	//Contador de pulsos
+	  		  if(CAMBIO==1)
+	  		  {
+	  		  //ES UN TIEMPO DE ESPERA PARA EL SIGUIENTE PULSO
+	  			  WAIT++;
+	  			  if(WAIT>70)
+	  			  {
+	  				SENAL_STATE=1;
+	  				WAIT=0;
+	  				CAMBIO=0;
+	  			  }
 
-	    		if(Cont_Button_unactive>130)
-				{
-	    /* Cuando no se vuelve a pulsar el push button entra
-	     * devuelve el valor de CAMBIO y resetea todos los valores*/
-	    			SENAL_STATE=CAMBIO;
-					Pulso=LOW;
-					Cont_Button_unactive=0;
-				}
-			}
-	 }
+	  		  } else if (CAMBIO==2)
+	  		  {
+	  			//NO TIENE UN TIEMPO DE ESPERA
+	  			  SENAL_STATE=1;
+	  			  WAIT=0;
+	  			  CAMBIO=0;
+	  			  /*PLUS++;
+	  			  if (PLUS>70)
+	  			  {
+	  				SENAL_STATE=1;
+	  			  }*/
+	  		  }
+	    }
+
+
 }
 
 //----------------------------------------Maquina de estado---------------------------------------------------//
@@ -502,7 +513,6 @@ uint16_t FUN_ESTADO_INICIO (void)
    for(;;)
    {
       /*Prueba de leds
-       * for(byte i=0; i<3;i++){
         digitalWrite(LED, LOW);
         digitalWrite(LED1, LOW);
         delay(500);
@@ -515,7 +525,6 @@ uint16_t FUN_ESTADO_INICIO (void)
         digitalWrite(LED, LOW);
         digitalWrite(LED1, HIGH);
         delay(500);
-      }
 	   // ESTADO ABIERTO
 	   			  SERVOS(1,0);
 	   	  // ESTADO SEMI_CERRADO
@@ -529,7 +538,7 @@ uint16_t FUN_ESTADO_INICIO (void)
       return ESTADO_ABIERTO;
     }
 
-    //HAL_Delay(1);
+    HAL_Delay(1);
 
    }
 }
@@ -645,8 +654,37 @@ for(;;){
  * */
 void SERVOS(uint8_t servo1, uint8_t servo2)
 {
+
+	//Servo1
+		if(servo1==1)
+		{
+			//0 a 180
+			htim15.Instance->CCR1 = 2500;// 180 grados
+			HAL_Delay(1000);
+
+		} else if(servo1==0)
+		{
+			//180 a 0
+			htim15.Instance->CCR1 = 500;// 0 grados
+			HAL_Delay(1000);
+		}
+
+	//Servo2
+		if(servo2==1)
+		{
+			//0 a 180
+			htim15.Instance->CCR2 = 2500;// 180 GRADOS
+			HAL_Delay(1000);
+
+		} else if(servo2==0)
+		{
+			//180 a 0
+			htim15.Instance->CCR2 = 500;// 0 GRADOS
+			HAL_Delay(1000);
+		}
+/*
 //Servo1
-	if((servo1==1) && (htim15.Instance->CCR1!=2499))
+	if(servo1==1)// && (htim15.Instance->CCR1!=2499))
 	{
 		//0 a 180
 		for(int i=500; i<2500;i+=2)
@@ -654,7 +692,7 @@ void SERVOS(uint8_t servo1, uint8_t servo2)
 			 htim15.Instance->CCR1 = i;
 			 HAL_Delay(2);
 		  }
-	} else if((servo1==0) && (htim15.Instance->CCR1!=499))
+	} else if(servo1==0)// && (htim15.Instance->CCR1!=499))
 	{
 		//180 a 0
 		for(int j=2500; j>500;j-=2)
@@ -665,7 +703,7 @@ void SERVOS(uint8_t servo1, uint8_t servo2)
 	}
 
 //Servo2
-	if((servo2==1) && (htim15.Instance->CCR2!=2499))
+	if(servo2==1)// && (htim15.Instance->CCR2!=2499))
 	{
 		//0 a 180
 		for(int k=500; k<2500;k+=2)
@@ -673,7 +711,7 @@ void SERVOS(uint8_t servo1, uint8_t servo2)
 			 htim15.Instance->CCR2 = k;
 			 HAL_Delay(2);
 		  }
-	} else if((servo2==0) && (htim15.Instance->CCR2!=499))
+	} else if(servo2==0)// && (htim15.Instance->CCR2!=499))
 	{
 		//180 a 0
 		for(int l=2500; l>500;l-=2)
@@ -682,7 +720,7 @@ void SERVOS(uint8_t servo1, uint8_t servo2)
 			 HAL_Delay(2);
 		  }
 	}
-
+*/
 }
 
 

@@ -5,9 +5,9 @@
 ../Core/Src/main.c:353:13:MX_USART2_UART_Init	8	static
 ../Core/Src/main.c:401:13:MX_GPIO_Init	48	static
 ../Core/Src/main.c:431:6:HAL_TIM_PeriodElapsedCallback	16	static
-../Core/Src/main.c:495:10:FUN_ESTADO_INICIO	8	static
-../Core/Src/main.c:537:10:FUN_ESTADO_ABIERTO	8	static
-../Core/Src/main.c:567:10:FUN_ESTADO_SEMICERRADO	8	static
-../Core/Src/main.c:599:10:FUN_ESTADO_CERRADO	8	static
-../Core/Src/main.c:646:6:SERVOS	32	static
-../Core/Src/main.c:695:6:Error_Handler	8	static,ignoring_inline_asm
+../Core/Src/main.c:506:10:FUN_ESTADO_INICIO	8	static
+../Core/Src/main.c:546:10:FUN_ESTADO_ABIERTO	8	static
+../Core/Src/main.c:576:10:FUN_ESTADO_SEMICERRADO	8	static
+../Core/Src/main.c:608:10:FUN_ESTADO_CERRADO	8	static
+../Core/Src/main.c:655:6:SERVOS	16	static
+../Core/Src/main.c:733:6:Error_Handler	8	static,ignoring_inline_asm
