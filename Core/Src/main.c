@@ -40,7 +40,6 @@
 
 //Controlan las pulsaciones
 #define HUMBRAL_TIME 28//Lo ideal es 35, Tiempo en HIGH
-//#define TIME_LOOP 70 //Lo ideal es 35, Periodo
 
 //Espacio en memoria de la maquina de estado
 #define ESTADO_INICIO 0
@@ -54,16 +53,16 @@
 #define LOW 0
 #define HIGH 1
 
-uint16_t FUN_ESTADO_INICIO (void);
-uint16_t FUN_ESTADO_ABIERTO (void);
-uint16_t FUN_ESTADO_SEMICERRADO (void);
-uint16_t FUN_ESTADO_CERRADO (void);
+uint8_t FUN_ESTADO_INICIO (void);
+uint8_t FUN_ESTADO_ABIERTO (void);
+uint8_t FUN_ESTADO_SEMICERRADO (void);
+uint8_t FUN_ESTADO_CERRADO (void);
 
-uint16_t ESTADO_SIGUIENTE=ESTADO_INICIO;
-uint16_t ESTADO_ACTUAL=ESTADO_INICIO;
-uint16_t ESTADO_ANTERIOR=ESTADO_INICIO;
-uint16_t INICIO_STATE=TRUE;
-uint16_t SENAL_STATE=0;
+uint8_t ESTADO_SIGUIENTE=ESTADO_INICIO;
+uint8_t ESTADO_ACTUAL=ESTADO_INICIO;
+uint8_t ESTADO_ANTERIOR=ESTADO_INICIO;
+uint8_t INICIO_STATE=TRUE;
+uint8_t SENAL_STATE=0;
 
 void SERVOS(uint8_t servo1, uint8_t servo2);
 /* USER CODE END PD */
@@ -131,11 +130,7 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
-  // Start timer
-  /*HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);*/
+  // Start INTERRUPCION DEL TIMER3
   HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
@@ -451,6 +446,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	    	{
 	    		//DETECTA EL FLANCO ALTO
 					Pulso=HIGH;
+					WAIT=0;
 					Cont_Button_active = 0;
 					Cont_Button_unactive=0;
 				}
@@ -459,7 +455,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	    	    /* Cuando dejo de pulsar el push button, entro aqui
 	    	     * Se resetea el contador en alto y comienza a contar el contador en bajo
 	    	     * y se vuelve en un FLANCO BAJO*/
-	    	    		Cont_Button_active = 0;
+	    				WAIT=0;
+	    				Cont_Button_active = 0;
 	    	    		Cont_Button_unactive++;
 
 	    	    		if(Cont_Button_unactive>80)
@@ -469,6 +466,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	    	    			CAMBIO++;
 	    					Pulso=LOW;
 	    					Cont_Button_unactive=0;
+
+	    					if(CAMBIO>=2){// ES POR SI HAY OTRA PULSACION, Y EVITANDO UN ERROR DE REBOTE
+	    						CAMBIO=2;
+	    					}
 	    				}
 
 	    	}
@@ -476,26 +477,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  	//Contador de pulsos
 	  		  if(CAMBIO==1)
 	  		  {
-	  		  //ES UN TIEMPO DE ESPERA PARA EL SIGUIENTE PULSO
-	  			  WAIT++;
-	  			  if(WAIT>70)
-	  			  {
-	  				SENAL_STATE=1;
-	  				WAIT=0;
-	  				CAMBIO=0;
-	  			  }
+	  			//ES UN TIEMPO DE ESPERA PARA EL SIGUIENTE PULSO
+				  WAIT++;
+				  if(WAIT>250)
+				  {
+					SENAL_STATE=1;
+					WAIT=0;
+					CAMBIO=0;
+				  }
+
 
 	  		  } else if (CAMBIO==2)
 	  		  {
 	  			//NO TIENE UN TIEMPO DE ESPERA
-	  			  SENAL_STATE=1;
-	  			  WAIT=0;
-	  			  CAMBIO=0;
-	  			  /*PLUS++;
-	  			  if (PLUS>70)
-	  			  {
-	  				SENAL_STATE=1;
-	  			  }*/
+				  SENAL_STATE=2;
+				  WAIT=0;
+				  CAMBIO=0;
 	  		  }
 	    }
 
@@ -503,7 +500,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 //----------------------------------------Maquina de estado---------------------------------------------------//
-uint16_t FUN_ESTADO_INICIO (void)
+uint8_t FUN_ESTADO_INICIO (void)
 {
    ESTADO_ANTERIOR=ESTADO_ACTUAL;
    ESTADO_ACTUAL=ESTADO_INICIO;
@@ -543,18 +540,23 @@ uint16_t FUN_ESTADO_INICIO (void)
    }
 }
 
-uint16_t FUN_ESTADO_ABIERTO (void)
+uint8_t FUN_ESTADO_ABIERTO (void)
 {
    ESTADO_ANTERIOR=ESTADO_ACTUAL;
    ESTADO_ACTUAL=ESTADO_ABIERTO;
-   //realizan las funciones de estado abierto
+
    SENAL_STATE=0;//Evita que cambie de estado
+
+   //LEDS DE ESTADO
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
    HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
 
+   //ACTIVAR EL PWM
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
    SERVOS(1,0);
+
+   //DESACTIVA EL PWM
    HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
    HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
 
@@ -573,19 +575,23 @@ for(;;){
   }
 }
 
-uint16_t FUN_ESTADO_SEMICERRADO (void)
+uint8_t FUN_ESTADO_SEMICERRADO (void)
 {
    ESTADO_ANTERIOR=ESTADO_ACTUAL;
    ESTADO_ACTUAL=ESTADO_SEMICERRADO;
-  //realizan las funciones de estado semicerrado
 
    SENAL_STATE=0;//Evita que cambie de estado
+
+   //LEDS DE ESTADO
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
    HAL_GPIO_WritePin(GPIOA,RED_LED,HIGH);
 
+   //ACTIVAR EL PWM
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
    SERVOS(0,0);
+
+   //DESACTIVA EL PWM
    HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
    HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
 
@@ -605,19 +611,23 @@ for(;;){
    }
 }
 
-uint16_t FUN_ESTADO_CERRADO (void)
+uint8_t FUN_ESTADO_CERRADO (void)
 {
    ESTADO_ANTERIOR=ESTADO_ACTUAL;
    ESTADO_ACTUAL=ESTADO_CERRADO;
-  //realizan las funciones de estado semicerrado
 
    SENAL_STATE=0;//Evita que cambie de estado
+
+   //LEDS DE ESTADO
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,HIGH);
    HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
 
+   //ACTIVAR EL PWM
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
    SERVOS(0,1);
+
+   //DESACTIVA EL PWM
    HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
    HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
 
@@ -682,45 +692,6 @@ void SERVOS(uint8_t servo1, uint8_t servo2)
 			htim15.Instance->CCR2 = 500;// 0 GRADOS
 			HAL_Delay(1000);
 		}
-/*
-//Servo1
-	if(servo1==1)// && (htim15.Instance->CCR1!=2499))
-	{
-		//0 a 180
-		for(int i=500; i<2500;i+=2)
-		  {
-			 htim15.Instance->CCR1 = i;
-			 HAL_Delay(2);
-		  }
-	} else if(servo1==0)// && (htim15.Instance->CCR1!=499))
-	{
-		//180 a 0
-		for(int j=2500; j>500;j-=2)
-		  {
-			 htim15.Instance->CCR1 = j;
-			 HAL_Delay(2);
-		  }
-	}
-
-//Servo2
-	if(servo2==1)// && (htim15.Instance->CCR2!=2499))
-	{
-		//0 a 180
-		for(int k=500; k<2500;k+=2)
-		  {
-			 htim15.Instance->CCR2 = k;
-			 HAL_Delay(2);
-		  }
-	} else if(servo2==0)// && (htim15.Instance->CCR2!=499))
-	{
-		//180 a 0
-		for(int l=2500; l>500;l-=2)
-		  {
-			 htim15.Instance->CCR2 = l;
-			 HAL_Delay(2);
-		  }
-	}
-*/
 }
 
 
