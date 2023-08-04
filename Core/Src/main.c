@@ -132,8 +132,10 @@ int main(void)
   MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
   // Start timer
-  HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
+  /*HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
+  HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);*/
   HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
@@ -145,20 +147,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  /*HAL_Delay(1000);
-	  SERVOS(0, 1);
-	  HAL_Delay(1000);
-	  SERVOS(1, 0);
-	  HAL_Delay(1000);
-	  SERVOS(1, 0);
-	  HAL_Delay(1000);
-	  SERVOS(1, 1);
-	  HAL_Delay(1000);*/
+
 	  ESTADO_SIGUIENTE = FUN_ESTADO_INICIO();
 
 	  for(;;)
 	  {
-		//HAL_Delay(100);
 	    if(ESTADO_SIGUIENTE==ESTADO_ABIERTO)
 	    {
 	      ESTADO_SIGUIENTE=FUN_ESTADO_ABIERTO();
@@ -440,25 +433,40 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	//ESTA INTERRUPCION ENTRA CADA 0.01s
 	  if (htim == &htim3)
 	  {
-	  static unsigned int Cont_Button_active = 0;
-	  static unsigned int Cont_Button_unactive = 0;
-	  static uint16_t Pulso=0;
+	  static unsigned int Cont_Button_active = 0;	//Hace el conteo para el filtro en el flanco alto
+	  static unsigned int Cont_Button_unactive = 0; //Hace el conteo para el filtro en el flanco bajo
+	  static uint16_t Pulso=0;	//Lo que hace es avisar que tuvo un pulso alto para pasar al siguiente pulso
+	  static uint16_t CAMBIO=0;	//ES USADO PARA DAR UN TIEMPO DE ESPERA ENTRE CADA PULSO
 
-
-	    if (HAL_GPIO_ReadPin(GPIOA,BUTTON_IN)==0)
+	  	if (HAL_GPIO_ReadPin(GPIOA,BUTTON_IN)==0)
 	    {
+	    /* Entrara aqui cuando se precione el push button
+	     * El contador comenzara a contar, cuando pase el tiempo de HUMBRAL_TIME
+	     * se considerara al push button como activo, cuando se deje de pulsar
+	     * el contador se reiniciara*/
+	    	SENAL_STATE=0;
 	    	Cont_Button_active++;
 	    	if(Cont_Button_active >= HUMBRAL_TIME)
 	    	{
-				if((Cont_Button_unactive>=20)&&(Cont_Button_unactive<=100))
+				if((Cont_Button_unactive>=10)&&(Cont_Button_unactive<=100))
 				{
-					SENAL_STATE=2;
-					Pulso=LOW;
+		/* Cuando se precione por segunda vez el push button y que tenga un tiempo
+		 * en el esto bajo mayor a 20 y menor a 100, entonces entrara aqui
+		 * y devolvienod
+		 * */
+					CAMBIO=2;
+					Pulso=HIGH;
 					Cont_Button_active = 0;
 					Cont_Button_unactive=0;
 				}else
 				{
-					SENAL_STATE=0;
+		/* Cuando se precione por primera vez el push button, entrara aqui
+		 * Para dar a entender que se ha precionado y darle tiempo a la segunda pulsacion
+		 * se le asigna a la variable Pulso un HIGH.
+		 *
+		 * Reseteamos los contadores de alto y bajo.*/
+					//SENAL_STATE=0;
+					CAMBIO=1;
 					Pulso=HIGH;
 					Cont_Button_active = 0;
 					Cont_Button_unactive=0;
@@ -466,65 +474,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	    	}
 
 	    }else if(Pulso==HIGH){
+	    /* Cuando dejo de pulsar el push button, entro aqui
+	     * Se resetea el contador en alto y comienza a contar el contador en bajo*/
 	    		Cont_Button_active = 0;
 	    		Cont_Button_unactive++;
 
 	    		if(Cont_Button_unactive>130)
 				{
-					SENAL_STATE=1;
+	    /* Cuando no se vuelve a pulsar el push button entra
+	     * devuelve el valor de CAMBIO y resetea todos los valores*/
+	    			SENAL_STATE=CAMBIO;
 					Pulso=LOW;
 					Cont_Button_unactive=0;
-
 				}
 			}
 	 }
 }
-/*  //ESTA INTERRUPCION ENTRA CADA 0.01s
-  if (htim == &htim3)
-  {
-	  static unsigned int Cont_Button_active = 0;
-	  static uint16_t Cont_Pulse=0;
-	  static uint16_t LOOP=0;
-
-
-	    if (HAL_GPIO_ReadPin(GPIOA,BUTTON_IN)==0)
-	    {
-	    	Cont_Button_active++;
-	    	LOOP++;
-	    	if(Cont_Button_active >= HUMBRAL_TIME){//si el pulso es muy largo
-				Cont_Pulse++;
-				Cont_Button_active = 0;
-	    	}
-
-	    }else{
-	    	if(LOOP>=3){//esta condicion es para el periodo, no este desfasado con
-	    		LOOP++;
-				Cont_Button_active = 0;
-				if(LOOP>=TIME_LOOP){
-					LOOP=0;
-					switch(Cont_Pulse){
-						case 1:
-							//HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
-							//HAL_GPIO_WritePin(GPIOA,RED_LED,HIGH);
-							Cont_Pulse=0;
-							SENAL_STATE=1;
-							break;
-						case 2:
-							//HAL_GPIO_WritePin(GPIOA,BLUE_LED,HIGH);
-							//HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
-							Cont_Pulse=0;
-							SENAL_STATE=2;
-							break;
-						default:
-							SENAL_STATE=0;
-							break;
-					}
-				}
-	    	}
-
-	    }
-	  }
-  }*/
 
 //----------------------------------------Maquina de estado---------------------------------------------------//
 uint16_t FUN_ESTADO_INICIO (void)
@@ -550,14 +515,21 @@ uint16_t FUN_ESTADO_INICIO (void)
         digitalWrite(LED, LOW);
         digitalWrite(LED1, HIGH);
         delay(500);
-      }*/
-
+      }
+	   // ESTADO ABIERTO
+	   			  SERVOS(1,0);
+	   	  // ESTADO SEMI_CERRADO
+	   			  SERVOS(0,0);
+	   	  // ESTADO CERRADO
+	   			  SERVOS(0,1);
+	   	  // APUNTAR
+	   			  SERVOS(1,1);*/
     if(INICIO_STATE==TRUE)
     {
       return ESTADO_ABIERTO;
     }
 
-    //HAL_Delay(10);
+    //HAL_Delay(1);
 
    }
 }
@@ -567,12 +539,16 @@ uint16_t FUN_ESTADO_ABIERTO (void)
    ESTADO_ANTERIOR=ESTADO_ACTUAL;
    ESTADO_ACTUAL=ESTADO_ABIERTO;
    //realizan las funciones de estado abierto
-/*   servo1.write(0); // Meñique, Anular y Medio
-   servo2.write(180); //Servo de arriba */
-
-   SENAL_STATE=0;
+   SENAL_STATE=0;//Evita que cambie de estado
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
    HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
+/*
+   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
+   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
+   SERVOS(1,0);
+   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
+   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
+*/
 for(;;){
     //retorno a semicerrado
      if(SENAL_STATE==1)
@@ -584,7 +560,7 @@ for(;;){
      {
       return ESTADO_CERRADO;
      }
-     //HAL_Delay(10);
+     //HAL_Delay(1);
   }
 }
 
@@ -593,11 +569,17 @@ uint16_t FUN_ESTADO_SEMICERRADO (void)
    ESTADO_ANTERIOR=ESTADO_ACTUAL;
    ESTADO_ACTUAL=ESTADO_SEMICERRADO;
   //realizan las funciones de estado semicerrado
-  /* servo1.write(0); // Meñique, Anular y Medio
-   servo2.write(0); // Indice y Pulgar*/
-   SENAL_STATE=0;
+
+   SENAL_STATE=0;//Evita que cambie de estado
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
    HAL_GPIO_WritePin(GPIOA,RED_LED,HIGH);
+/*
+   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
+   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
+   SERVOS(0,0);
+   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
+   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
+*/
 for(;;){
 //cierre
     //retorno a ABIERTO
@@ -610,7 +592,7 @@ for(;;){
      {
       return ESTADO_CERRADO;
      }
-     //HAL_Delay(10);
+     //HAL_Delay(1);
    }
 }
 
@@ -619,12 +601,16 @@ uint16_t FUN_ESTADO_CERRADO (void)
    ESTADO_ANTERIOR=ESTADO_ACTUAL;
    ESTADO_ACTUAL=ESTADO_CERRADO;
   //realizan las funciones de estado semicerrado
-  /* servo1.write(180); // Meñique, Anular y Medio
-   servo2.write(0); // Indice y Pulgar*/
 
-   SENAL_STATE=0;
+   SENAL_STATE=0;//Evita que cambie de estado
    HAL_GPIO_WritePin(GPIOA,BLUE_LED,HIGH);
    HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
+/*
+   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
+   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
+   SERVOS(0,1);
+   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
+   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);*/
 for(;;){
 
     //retorno a ABIERTO
@@ -637,8 +623,7 @@ for(;;){
      {
       return ESTADO_SEMICERRADO;
      }
-
-     //HAL_Delay(10);
+     //HAL_Delay(1);
   }
 }
 
@@ -646,44 +631,51 @@ for(;;){
 /* Si a servo1 o a servo2
  * se le coloca 1, se pondra en 180 grados
  * pero si se le coloca, 0 se pondra en 0 grados
+ * Se le debe poner
  *
- * El servo1 es el buttom
- * El servo2 es el Top
+ * El servo1 es el TOP
+ * El servo2 es el BUTTOM
+ *
+ * ESTADO ABIERTO = SERVOS(1,0);
+ * ESTADO SEMI_CERRADO = SERVOS(0,0);
+ * ESTADO CERRADO = SERVOS(0,1);
+ * APUNTAR = SERVOS(1,1);
+ *
  * */
 void SERVOS(uint8_t servo1, uint8_t servo2)
 {
 //Servo1
-	if(servo1==1)
+	if((servo1==1) && (htim15.Instance->CCR1!=2499))
 	{
 		//0 a 180
-		for(int i=500; i<2500;i++)
+		for(int i=500; i<2500;i+=2)
 		  {
 			 htim15.Instance->CCR1 = i;
 			 HAL_Delay(2);
 		  }
-	} else if(servo1==0)
+	} else if((servo1==0) && (htim15.Instance->CCR1!=499))
 	{
 		//180 a 0
-		for(int j=2500; j>500;j--)
+		for(int j=2500; j>500;j-=2)
 		  {
 			 htim15.Instance->CCR1 = j;
 			 HAL_Delay(2);
 		  }
 	}
 
-//Servo1
-	if(servo2==1)
+//Servo2
+	if((servo2==1) && (htim15.Instance->CCR2!=2499))
 	{
 		//0 a 180
-		for(int k=500; k<2500;k++)
+		for(int k=500; k<2500;k+=2)
 		  {
 			 htim15.Instance->CCR2 = k;
 			 HAL_Delay(2);
 		  }
-	} else if(servo2==0)
+	} else if((servo2==0) && (htim15.Instance->CCR2!=499))
 	{
 		//180 a 0
-		for(int l=2500; l>500;l--)
+		for(int l=2500; l>500;l-=2)
 		  {
 			 htim15.Instance->CCR2 = l;
 			 HAL_Delay(2);
