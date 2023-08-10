@@ -142,7 +142,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
 	  ESTADO_SIGUIENTE = FUN_ESTADO_INICIO();
 
 	  for(;;)
@@ -461,7 +460,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 	    	    		if(Cont_Button_unactive>60)
 	    				{
-	    	    /* CUANDO EL FLANCO BAJO ES MAYOR A 80 o 0.8s,
+	    	    /* CUANDO EL FLANCO BAJO ES MAYOR A 60 o 0.6s,
 	    	     * el valor de CAMBIO aumenta*/
 	    	    			CAMBIO++;
 	    					Pulso=LOW;
