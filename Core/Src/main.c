@@ -39,7 +39,7 @@
 #define LOW 0
 
 //Controlan las pulsaciones
-#define HUMBRAL_TIME 28//Lo ideal es 35, Tiempo en HIGH
+#define HUMBRAL_TIME 28//Lo ideal es 28, Tiempo en HIGH
 
 //Espacio en memoria de la maquina de estado
 #define ESTADO_INICIO 0
@@ -458,7 +458,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	    				Cont_Button_active = 0;
 	    	    		Cont_Button_unactive++;
 
-	    	    		if(Cont_Button_unactive>80)
+	    	    		if(Cont_Button_unactive>70)
 	    				{
 	    	    /* CUANDO EL FLANCO BAJO ES MAYOR A 60 o 0.6s,
 	    	     * el valor de CAMBIO aumenta*/
@@ -478,7 +478,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  		  {
 	  			//ES UN TIEMPO DE ESPERA PARA EL SIGUIENTE PULSO
 				  WAIT++;
-				  if(WAIT>100)
+				  if(WAIT>200)
 				  {
 					SENAL_STATE=1;
 					WAIT=0;
@@ -508,7 +508,7 @@ uint8_t FUN_ESTADO_INICIO (void)
 
    for(;;)
    {
-      //Prueba de leds
+/*      //Prueba de leds
 	    HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
 	    HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
         HAL_Delay(500);
@@ -531,7 +531,7 @@ uint8_t FUN_ESTADO_INICIO (void)
 			  SERVOS(0,1);
 	   // APUNTAR
 			  SERVOS(1,1);
-
+*/
     if(INICIO_STATE==TRUE)
     {
       return ESTADO_ABIERTO;
