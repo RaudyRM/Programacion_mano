@@ -21,8 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <string.h>
-#include <stdio.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,8 +53,6 @@
 #define LOW 0
 #define HIGH 1
 
-#define sensorThreshold 5000
-
 uint8_t FUN_ESTADO_INICIO (void);
 uint8_t FUN_ESTADO_ABIERTO (void);
 uint8_t FUN_ESTADO_SEMICERRADO (void);
@@ -67,11 +64,7 @@ uint8_t ESTADO_ANTERIOR=ESTADO_INICIO;
 uint8_t INICIO_STATE=TRUE;
 uint8_t SENAL_STATE=0;
 
-uint32_t DIGITAL_VALUE, DIGITAL_RESULT;
-
 void SERVOS(uint8_t servo1, uint8_t servo2);
-void READ_SENSOR_EMG(void);
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -146,13 +139,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  /*
-	  READ_SENSOR_EMG();
-	  HAL_Delay(10);*/
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	/* ESTADO_SIGUIENTE = FUN_ESTADO_INICIO();
+	  ESTADO_SIGUIENTE = FUN_ESTADO_INICIO();
 
 	  for(;;)
 	  {
@@ -173,7 +163,7 @@ int main(void)
 	      ESTADO_SIGUIENTE=FUN_ESTADO_INICIO();
 	    }
 	    else {break;}
-	    }*/
+	    }
   }
   /* USER CODE END 3 */
 }
@@ -434,8 +424,7 @@ static void MX_GPIO_Init(void)
 // Callback: timer has rolled over
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	//ESTA INTERRUPCION ENTRA CADA 0.005s
-	//Frecuencia de 200Hz
+	//ESTA INTERRUPCION ENTRA CADA 0.01s
 	  if (htim == &htim3)
 	  {
 	  static unsigned int Cont_Button_active = 0;	//Hace el conteo para el filtro en el flanco alto
@@ -469,7 +458,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	    				Cont_Button_active = 0;
 	    	    		Cont_Button_unactive++;
 
-	    	    		if(Cont_Button_unactive>60)
+	    	    		if(Cont_Button_unactive>80)
 	    				{
 	    	    /* CUANDO EL FLANCO BAJO ES MAYOR A 60 o 0.6s,
 	    	     * el valor de CAMBIO aumenta*/
@@ -489,7 +478,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	  		  {
 	  			//ES UN TIEMPO DE ESPERA PARA EL SIGUIENTE PULSO
 				  WAIT++;
-				  if(WAIT>250)
+				  if(WAIT>100)
 				  {
 					SENAL_STATE=1;
 					WAIT=0;
@@ -519,7 +508,7 @@ uint8_t FUN_ESTADO_INICIO (void)
 
    for(;;)
    {
-     /* //Prueba de leds
+      //Prueba de leds
 	    HAL_GPIO_WritePin(GPIOA,BLUE_LED,LOW);
 	    HAL_GPIO_WritePin(GPIOA,RED_LED,LOW);
         HAL_Delay(500);
@@ -541,7 +530,7 @@ uint8_t FUN_ESTADO_INICIO (void)
 	   // ESTADO CERRADO
 			  SERVOS(0,1);
 	   // APUNTAR
-			  SERVOS(1,1);*/
+			  SERVOS(1,1);
 
     if(INICIO_STATE==TRUE)
     {
@@ -624,6 +613,7 @@ uint8_t FUN_ESTADO_CERRADO (void)
    SERVOS(0,1);
 
 for(;;){
+
     //retorno a ABIERTO
      if(SENAL_STATE==1)
      {
@@ -651,9 +641,6 @@ for(;;){
  * ESTADO SEMI_CERRADO = SERVOS(0,0);
  * ESTADO CERRADO = SERVOS(0,1);
  * APUNTAR = SERVOS(1,1);
- *
- * Frecuencia de 50Hz
- * Tiempo de 0.01s
  *
  * */
 void SERVOS(uint8_t servo1, uint8_t servo2)
@@ -694,57 +681,6 @@ void SERVOS(uint8_t servo1, uint8_t servo2)
 	   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_1);
 	   HAL_TIM_PWM_Stop(&htim15, TIM_CHANNEL_2);
 }
-/*
-void READ_SENSOR_EMG(void)
-{
-	//static uint16_t DIGITAL_VALUE, DIGITAL_RESULT;
-	static char msg[10];
-
-	  // Get ADC value
-	 for(uint8_t i=0; i<9;i++)
-	 {
-		 HAL_ADC_Start(&hadc1);
-		 HAL_ADC_PollForConversion(&hadc1, 100);
-		 DIGITAL_VALUE = HAL_ADC_GetValue(&hadc1);
-		 HAL_ADC_Stop(&hadc1);
-		 DIGITAL_RESULT = DIGITAL_RESULT + DIGITAL_VALUE;
-		 HAL_Delay(5);
-
-		 for(uint8_t i=0; i<250;i++)
-		 {
-			  //Void
-		 }
-	 }
-
-	 DIGITAL_RESULT=DIGITAL_RESULT/10;
-
-	   HAL_ADC_Start(&hadc1);
-		 HAL_ADC_PollForConversion(&hadc1, 100);
-		 DIGITAL_VALUE = HAL_ADC_GetValue(&hadc1);
-		 HAL_ADC_Stop(&hadc1);
-		 DIGITAL_RESULT = DIGITAL_RESULT + DIGITAL_VALUE;
-		 HAL_Delay(5);
-
-
-
-	  HAL_ADC_Start(&hadc1);
-	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-	  DIGITAL_VALUE = HAL_ADC_GetValue(&hadc1);
-
-
-	  // Convert to string and print
-	  //sprintf(msg, "%hu\r\n", DIGITAL_RESULT);
-	  //HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-
-	  // Pretend we have to do something else for a while
-	  //HAL_Delay(5);
-	  for(uint8_t i=0; i<250;i++)
-	  {
-		  //Void
-	  }//
-	  //return DIGITAL_RESULT;
-}*/
-
 
 
 /* USER CODE END 4 */
