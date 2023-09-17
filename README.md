@@ -1,2 +1,1 @@
-# Programacion_mano
-#La Mano mioelectrica fue programada con un STM32G071B
+# Programacion_mano Nucleo=STM32G071B
