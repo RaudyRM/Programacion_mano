@@ -1,1 +1,1 @@
-# Programacion_mano Nucleo=STM32G071B
+# Programacion_mano Nucleo=STM32G071RB
